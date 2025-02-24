@@ -5,17 +5,17 @@ class Member:
         self.phone = phone
         self.id_card = id_card
         self.address = address
-        self.borrowed_books = {}  # {book_id: quantity}
+        self.borrowed_books = {}
 
     def borrow_book(self, book_id, quantity):
-        """Thêm sách vào danh sách đang mượn"""
+
         if book_id in self.borrowed_books:
             self.borrowed_books[book_id] += quantity
         else:
             self.borrowed_books[book_id] = quantity
 
     def return_book(self, book_id, quantity):
-        """Xóa sách khỏi danh sách mượn"""
+
         if book_id in self.borrowed_books:
             self.borrowed_books[book_id] -= quantity
             if self.borrowed_books[book_id] <= 0:

@@ -4,10 +4,10 @@ class Book:
         self.title = title
         self.author = author
         self.genre = genre
-        self.quantity = quantity  # Số lượng hiện có
+        self.quantity = quantity
 
     def update_info(self, title=None, author=None, genre=None, quantity=None):
-        """Cập nhật thông tin sách"""
+
         if title:
             self.title = title
         if author:

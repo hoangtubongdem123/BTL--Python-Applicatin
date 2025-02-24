@@ -26,7 +26,7 @@ class BorrowReturnRecord:
     def __init__(self, record_id, member_id, borrowed_books, borrow_date, due_date):
         self.record_id = record_id
         self.member_id = member_id
-        self.borrowed_books = borrowed_books  # dict of {book_id: quantity}
+        self.borrowed_books = borrowed_books
         self.borrow_date = borrow_date
         self.due_date = due_date
         self.return_date = None
