@@ -68,6 +68,84 @@ class LibraryManagement:
         if book_id in self.books:
             self.books[book_id].update_info(**kwargs)
 
+    def update_info(self, book_id):
+        """Create a GUI window to update book information."""
+        update_window = tk.Toplevel()
+        update_window.title("Sửa Sách")
+        update_window.geometry("300x350")
+
+        # Load book data from Excel
+        try:
+            df = pd.read_excel("books.xlsx")
+            book_id = int(book_id) if book_id.isdigit() else book_id
+            book_row = df[df["ID"] == book_id]  # Find the book by ID
+            if book_row.empty:
+                messagebox.showerror("Lỗi", "Không tìm thấy sách!")
+                return
+        except FileNotFoundError:
+            messagebox.showerror("Lỗi", "Không tìm thấy file sách!")
+            return
+
+        book_data = book_row.iloc[0]  # Get the first matching row
+
+        # Labels & Input Fields
+        tk.Label(update_window, text=f"ID: {book_id}").pack(pady=5)
+
+        tk.Label(update_window, text="Tên Sách:").pack(pady=5)
+        entry_name = tk.Entry(update_window)
+        entry_name.insert(0, book_data["Tên Sách"])  # Prefill data
+        entry_name.pack(pady=5)
+
+        tk.Label(update_window, text="Tác Giả:").pack(pady=5)
+        entry_author = tk.Entry(update_window)
+        entry_author.insert(0, book_data["Tác Giả"])
+        entry_author.pack(pady=5)
+
+        tk.Label(update_window, text="Thể Loại:").pack(pady=5)
+        entry_category = tk.Entry(update_window)
+        entry_category.insert(0, book_data["Thể Loại"])
+        entry_category.pack(pady=5)
+
+        tk.Label(update_window, text="Số Lượng:").pack(pady=5)
+        entry_quantity = tk.Entry(update_window)
+        entry_quantity.insert(0, str(book_data["Số Lượng"]))
+        entry_quantity.pack(pady=5)
+
+        # Save Button
+        tk.Button(update_window, text="Lưu",
+                  command=lambda: self.save_update_book(book_id, entry_name.get(), entry_author.get(),
+                                                        entry_category.get(),
+                                                        entry_quantity.get(), update_window)).pack(pady=10)
+
+    def save_update_book(self, book_id, name, author, category, quantity, window):
+        """Update book details in the Excel file."""
+        if not name or not author or not category:
+            messagebox.showerror("Lỗi", "Vui lòng nhập đầy đủ thông tin!")
+            return
+
+        try:
+            df = pd.read_excel("books.xlsx")
+        except FileNotFoundError:
+            messagebox.showerror("Lỗi", "Không tìm thấy file sách!")
+            return
+
+        # Find index of book_id
+        index = df[df["ID"] == book_id].index
+        if index.empty:
+            messagebox.showerror("Lỗi", "Không tìm thấy sách!")
+            return
+
+        # Update existing book details
+        df.loc[index, "Tên Sách"] = name
+        df.loc[index, "Tác Giả"] = author
+        df.loc[index, "Thể Loại"] = category
+        df.loc[index, "Số Lượng"] = quantity
+
+        # Save updated Excel file
+        df.to_excel("books.xlsx", index=False)
+        messagebox.showinfo("Thành công", "Cập nhật sách thành công!")
+
+        window.destroy()
     def delete_book(self, book_id):
         if book_id in self.books:
 
@@ -84,7 +162,7 @@ class LibraryManagement:
         add_window = tk.Toplevel(self.view)
         add_window.title("Thêm Thành Viên")
         add_window.geometry("400x300")
-        add_window.configure(bg="white")
+        add_window.configure(bg="black")
 
         tk.Label(add_window, text="ID:", font=("Arial", 12)).pack(pady=5)
         entry_id = tk.Entry(add_window, font=("Arial", 12))
@@ -141,22 +219,29 @@ class LibraryManagement:
             return True
         return False
 
-    def borrow_books(self):
 
+
+    def borrow_books(self):
         self.view.clear_main_frame()
 
         tk.Label(self.view.main_frame, text="➕ Thêm Phiếu Mượn", font=("Arial", 16, "bold")).pack(pady=10)
 
+        # Tự động tạo mã phiếu
+        try:
+            borrow_df = pd.read_excel("borrow_records.xlsx")
+            new_borrow_id = borrow_df["Mã Phiếu"].max() + 1
+        except (FileNotFoundError, ValueError):
+            new_borrow_id = 1  # Nếu không có dữ liệu, bắt đầu từ 1
 
         tk.Label(self.view.main_frame, text="Mã Phiếu:").pack()
         entry_borrow_id = tk.Entry(self.view.main_frame)
+        entry_borrow_id.insert(0, str(new_borrow_id))  # Điền mã phiếu tự sinh vào ô nhập
+        entry_borrow_id.config(state="disabled")  # Không cho chỉnh sửa
         entry_borrow_id.pack()
-
 
         tk.Label(self.view.main_frame, text="Mã Thành Viên:").pack()
         entry_member_id = tk.Entry(self.view.main_frame)
         entry_member_id.pack()
-
 
         book_entries = []
 
@@ -172,7 +257,6 @@ class LibraryManagement:
             book_entries.append((entry_book_id, entry_quantity))
 
         tk.Button(self.view.main_frame, text="➕ Thêm Sách", command=add_book_entry).pack(pady=5)
-
 
         def save_borrow_record():
             borrow_id = entry_borrow_id.get()
@@ -193,7 +277,8 @@ class LibraryManagement:
                 borrow_df = pd.read_excel("borrow_records.xlsx")
             except FileNotFoundError:
                 borrow_df = pd.DataFrame(
-                    columns=["Mã Phiếu", "Mã Thành Viên", "Mã Sách", "Số Lượng", "Ngày Mượn", "Ngày Trả Dự Kiến"])
+                    columns=["Mã Phiếu", "Mã Thành Viên", "Mã Sách", "Số Lượng", "Ngày Mượn", "Ngày Trả Dự Kiến"]
+                )
 
             try:
                 books_df = pd.read_excel("books.xlsx")
@@ -203,26 +288,37 @@ class LibraryManagement:
                 messagebox.showerror("Lỗi", "Không tìm thấy file books.xlsx!")
                 return
 
+            # 🎯 Kiểm tra số lượng sách đã mượn của thành viên
+            if member_id in borrow_df["Mã Thành Viên"].values:
+                borrowed_books_count = borrow_df[borrow_df["Mã Thành Viên"] == member_id]["Số Lượng"].sum()
+            else:
+                borrowed_books_count = 0
+
+            total_new_borrowed = sum(qty for _, qty in book_list)
+
+            if borrowed_books_count + total_new_borrowed > 5:
+                messagebox.showerror("Lỗi", f"Thành viên {member_id} không được mượn quá 5 cuốn sách cùng lúc!")
+                return
+
             borrow_date = datetime.now().strftime("%Y-%m-%d")
             return_due_date = (datetime.now() + timedelta(days=14)).strftime("%Y-%m-%d")  # Mặc định 14 ngày
 
             for book_id, quantity in book_list:
-
                 if book_id not in books_df["ID"].values:
                     messagebox.showerror("Lỗi", f"Sách có ID {book_id} không tồn tại!")
                     return
 
                 available_quantity = books_df.loc[books_df["ID"] == book_id, "Số Lượng"].values[0]
 
-
                 if quantity > available_quantity:
                     messagebox.showerror("Lỗi",
                                          f"Sách ID {book_id} chỉ còn {available_quantity}, không đủ để mượn {quantity}!")
                     return
 
-
+            # ✅ Cập nhật dữ liệu sau khi kiểm tra hợp lệ
             for book_id, quantity in book_list:
                 books_df.loc[books_df["ID"] == book_id, "Số Lượng"] -= quantity
+                books_df.loc[books_df["ID"] == book_id, "Số Lần Mượn"] += quantity
 
                 new_row = pd.DataFrame({"Mã Phiếu": [borrow_id], "Mã Thành Viên": [member_id], "Mã Sách": [book_id],
                                         "Số Lượng": [quantity], "Ngày Mượn": [borrow_date],
